@@ -1,9 +1,34 @@
 const express = require('express');
+const { body, param, validationResult } = require('express-validator');
 const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+const noteValidationRules = [
+  body('title')
+    .trim()
+    .notEmpty().withMessage('Title is required')
+    .isLength({ max: 200 }).withMessage('Title must be 200 characters or fewer'),
+  body('content')
+    .optional()
+    .isString().withMessage('Content must be a string')
+    .isLength({ max: 5000 }).withMessage('Content must be 5000 characters or fewer')
+];
+
+const idValidationRule = [
+  param('id')
+    .isInt({ min: 1 }).withMessage('ID must be a positive integer')
+];
+
+function handleValidationErrors(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array().map(e => e.msg) });
+  }
+  next();
+}
 
 app.get('/notes', async (req, res) => {
   try {
@@ -15,7 +40,7 @@ app.get('/notes', async (req, res) => {
   }
 });
 
-app.get('/notes/:id', async (req, res) => {
+app.get('/notes/:id', idValidationRule, handleValidationErrors, async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM notes WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
@@ -26,11 +51,9 @@ app.get('/notes/:id', async (req, res) => {
   }
 });
 
-app.post('/notes', async (req, res) => {
+app.post('/notes', noteValidationRules, handleValidationErrors, async (req, res) => {
   try {
     const { title, content } = req.body;
-    if (!title) return res.status(400).json({ error: 'Title is required' });
-
     const result = await db.query(
       'INSERT INTO notes (title, content) VALUES ($1, $2) RETURNING *',
       [title, content || '']
@@ -42,7 +65,7 @@ app.post('/notes', async (req, res) => {
   }
 });
 
-app.put('/notes/:id', async (req, res) => {
+app.put('/notes/:id', idValidationRule, noteValidationRules, handleValidationErrors, async (req, res) => {
   try {
     const existing = await db.query('SELECT * FROM notes WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
@@ -65,7 +88,7 @@ app.put('/notes/:id', async (req, res) => {
   }
 });
 
-app.delete('/notes/:id', async (req, res) => {
+app.delete('/notes/:id', idValidationRule, handleValidationErrors, async (req, res) => {
   try {
     const result = await db.query('DELETE FROM notes WHERE id = $1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Note not found' });
