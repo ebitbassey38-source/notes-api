@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Notes</h1>
+
+    <form id="note-form">
+      <input type="text" id="title-input" placeholder="Title" maxlength="200" required>
+      <textarea id="content-input" placeholder="Content (optional)" maxlength="5000"></textarea>
+      <button type="submit">Add Note</button>
+    </form>
+
+    <div id="error-box" class="error hidden"></div>
+
+    <div id="notes-list"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
